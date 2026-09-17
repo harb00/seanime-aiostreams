@@ -16,9 +16,9 @@ In Tenji, connect to your mobile Seanime server, open an anime, select **Online 
 
 ## How it works
 
-- Uses the anime's exact AniList ID, without title matching.
+- Uses the anime's exact AniList ID to retrieve its MyAnimeList ID, without title matching.
 - Retrieves episode counts and next-airing information from AniList.
-- Requests `/stream/series/anilist:ID:EPISODE.json` (or `/stream/movie/anilist:ID.json`) from the configured AIOStreams manifest base. AIOStreams handles its own ID mapping.
+- Requests `/stream/series/mal:ID:EPISODE.json` (or `/stream/movie/mal:ID.json`) from the configured AIOStreams manifest base. AIOStreams handles season/episode mapping. Its built-in indexers support `mal:` IDs; sending `anilist:` can silently return no streams.
 - Preserves path-based variants and query parameters, result order, descriptions and subtitles.
 - Returns HTTP(S) sources to Tenji's native player, including MKV URLs as type `unknown`.
 
@@ -26,7 +26,7 @@ Both Seanime Server and Tenji can run on the iPhone; your AIOStreams service mus
 
 ## Limitations and validation
 
-Node regression tests cover search IDs, episode lists, airing limits, movies, variants, sources, headers, subtitles and error handling. Live AniList metadata lookup was verified. **End-to-end execution in iOS Seanime/Goja and playback still require device testing.**
+Node regressions and integration tests against Seanime v3.10.2's actual Goja runtime pass, including live AniList and AIOStreams requests. Eight of nine sampled titles returned sources; two media sources also returned valid Matroska data over HTTP range requests. See [test details and reproduction steps](tests/README.md). **Native iPhone decoding and playback still require device testing.**
 
 Only direct HTTP(S) streams are supported. Raw torrents, magnets, external player links and raw Usenet results are omitted. Configure AIOStreams to return playable direct/debrid URLs. Titles with no known episode count and no next-airing data produce an explicit error. Completed series rely on AniList episode counts; this is not a per-episode availability check.
 
@@ -34,6 +34,10 @@ Seanime has one shared header map per episode server. Sources requiring differen
 
 Run tests with `node test.cjs`.
 
-### Troubleshooting (v0.1.1)
+### Troubleshooting (v0.1.2)
 
-Seanime can replace provider stream errors with a generic "no source found". In the provider preferences, temporarily enable **Diagnostic: test episode 1 when loading episodes**, save, and reopen the anime. This moves the check into episode-list loading so the actual error appears in Tenji's episode-list error/log. Disable the switch after troubleshooting. Diagnostics does not publish or transmit your configuration elsewhere; URLs are redacted from its error text. Standard `stremio://` manifest links are also accepted and converted to HTTPS.
+Version 0.1.2 fixes empty results caused by requesting `anilist:` stream IDs that the configured stream addons do not support. AIOStreams' `/api/v1/anime?idType=anilistId&idValue=...` mapping endpoint supports AniList; this does not mean every stream addon accepts the `anilist:` prefix. Update the extension and refresh the episode list. Old cached episode IDs are also supported.
+
+Seanime can replace provider stream errors with a generic "no source found" and export JavaScript Error objects as `map[]`. The provider logs redacted error text to the Seanime server log and rejects public calls with a string so that the message survives export.
+
+In the provider preferences, temporarily enable **Diagnostic: test episode 1 when loading episodes**, save, and reopen the anime. Check the **Seanime server log** for `AIOStreams diagnostic (episode 1)` or `Stream lookup failed`. A failed diagnostic no longer discards the episode list. Disable the switch after troubleshooting. Diagnostics does not publish or transmit your configuration elsewhere; URLs are redacted from its error text. Standard `stremio://` manifest links are also accepted and converted to HTTPS.

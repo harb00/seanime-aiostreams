@@ -1,7 +1,7 @@
 {
   "id": "harb00-aiostreams-online",
   "name": "AIOStreams Online (harb00)",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "manifestURI": "https://raw.githubusercontent.com/harb00/seanime-aiostreams/main/manifest.json",
   "language": "javascript",
   "type": "onlinestream-provider",
@@ -26,7 +26,7 @@
         "name": "diagnostics",
         "label": "Diagnostic: test episode 1 when loading episodes",
         "default": "false",
-        "description": "Temporarily enable to expose the actual stream error in the episode-list response. Disable after troubleshooting."
+        "description": "Temporarily enable to log the episode 1 stream error in the Seanime server log. Episode lists remain available."
       }
     ]
   }

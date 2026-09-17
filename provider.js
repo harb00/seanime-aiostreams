@@ -2,6 +2,21 @@
 class Provider {
     getSettings() { return { episodeServers: ['AIOStreams'], supportsDub: false }; }
     getEpisodeServers() { return ['AIOStreams']; }
+    // Goja exports Error objects without their non-enumerable message property.
+    // Reject public calls with text and log it before Seanime can hide the error.
+    async providerCall(action, run) {
+        try { return await run(); }
+        catch (error) {
+            const message = action + ': ' + this.safeError(error);
+            console.error(message);
+            throw message;
+        }
+    }
+    async search(opts) { return this.providerCall('Search failed', () => this.searchImpl(opts)); }
+    async findEpisodes(id) { return this.providerCall('Episode list failed', () => this.findEpisodesImpl(id)); }
+    async findEpisodeServer(episode, server) {
+        return this.providerCall('Stream lookup failed', () => this.findEpisodeServerImpl(episode, server));
+    }
     async json(url, options) {
         const response = await fetch(url, options || {});
         if (!response.ok) throw new Error('Request failed (HTTP ' + response.status + '). Check connectivity and provider settings.');
@@ -10,17 +25,17 @@ class Provider {
     async media(id) {
         const data = await this.json('https://graphql.anilist.co', {
             method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ query: 'query($id:Int!){Media(id:$id,type:ANIME){id format episodes status title{romaji english} nextAiringEpisode{episode}}}', variables: { id: Number(id) } })
+            body: JSON.stringify({ query: 'query($id:Int!){Media(id:$id,type:ANIME){id idMal format episodes status title{romaji english} nextAiringEpisode{episode}}}', variables: { id: Number(id) } })
         });
         if (!data.data || !data.data.Media) throw new Error('AniList could not resolve this anime.');
         return data.data.Media;
     }
-    async search(opts) {
+    async searchImpl(opts) {
         if (!opts.media || !opts.media.id) throw new Error('This provider requires an AniList anime ID.');
         const m = opts.media;
         return [{ id: String(m.id), title: m.englishTitle || m.romajiTitle || opts.query, url: 'https://anilist.co/anime/' + m.id, subOrDub: 'both' }];
     }
-    async findEpisodes(id) {
+    async findEpisodesImpl(id) {
         const m = await this.media(id);
         if (m.status === 'NOT_YET_RELEASED' || m.status === 'CANCELLED') return [];
         let count = m.episodes || 0;
@@ -32,7 +47,7 @@ class Provider {
         if (!count) throw new Error('AniList has no episode count for this title yet.');
         const episodes = [];
         for (let n = 1; n <= count; n++) episodes.push({
-            id: JSON.stringify({ anilist: m.id, episode: n, type: m.format === 'MOVIE' ? 'movie' : 'series' }),
+            id: JSON.stringify({ anilist: m.id, mal: m.idMal, episode: n, type: m.format === 'MOVIE' ? 'movie' : 'series' }),
             number: n, url: 'https://anilist.co/anime/' + m.id, title: m.format === 'MOVIE' ? (m.title.english || m.title.romaji) : 'Episode ' + n
         });
         if (String($getUserPreference('diagnostics') || 'false') === 'true' && episodes.length) {
@@ -40,7 +55,7 @@ class Provider {
                 const check = await this.findEpisodeServer(episodes[0], 'AIOStreams');
                 if (!check.videoSources.length) throw new Error('No playable sources.');
             } catch (error) {
-                throw new Error('AIOStreams diagnostic (episode 1): ' + this.safeError(error));
+                console.error('AIOStreams diagnostic (episode 1): ' + this.safeError(error));
             }
         }
         return episodes;
@@ -57,10 +72,14 @@ class Provider {
         if (secret) message = message.split(secret).join('[private manifest]');
         return message.replace(/(?:https?|stremio):\/\/[^\s"'<>]+/gi, '[URL hidden]').slice(0, 600);
     }
-    async findEpisodeServer(episode, server) {
+    async findEpisodeServerImpl(episode, server) {
         const ref = JSON.parse(episode.id);
-        // AIOStreams accepts AniList IDs and performs season/episode mapping itself.
-        const id = 'anilist:' + ref.anilist + (ref.type === 'movie' ? '' : ':' + ref.episode);
+        // Built-in AIOStreams indexers advertise mal:, but not anilist:.
+        // Keep the exact season's MAL ID; AIOStreams maps its episode numbering.
+        // Resolve old cached episode IDs from provider versions before 0.1.2.
+        const mal = ref.mal || (await this.media(ref.anilist)).idMal;
+        if (!mal) throw new Error('AniList has no MyAnimeList mapping for this title. AIOStreams requires a supported anime ID.');
+        const id = 'mal:' + mal + (ref.type === 'movie' ? '' : ':' + ref.episode);
         const url = this.streamUrl(ref.type, id);
         let data;
         try { data = await this.json(url); }
