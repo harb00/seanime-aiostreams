@@ -1,0 +1,26 @@
+{
+  "id": "harb00-aiostreams-online",
+  "name": "AIOStreams Online (harb00)",
+  "version": "0.1.0",
+  "manifestURI": "https://raw.githubusercontent.com/harb00/seanime-aiostreams/main/manifest.json",
+  "language": "javascript",
+  "type": "onlinestream-provider",
+  "description": "Direct AIOStreams playback through Seanime Online Streaming, including mobile server and Tenji.",
+  "author": "harb00",
+  "lang": "multi",
+  "payloadURI": "https://raw.githubusercontent.com/harb00/seanime-aiostreams/main/provider.js",
+  "website": "https://github.com/harb00/seanime-aiostreams",
+  "userConfig": {
+    "version": 1,
+    "requiresConfig": true,
+    "fields": [
+      {
+        "type": "text",
+        "name": "manifestUrl",
+        "label": "AIOStreams manifest URL",
+        "default": "",
+        "description": "Paste your personal Stremio manifest URL from AIOStreams, not the Seanime plugin manifest."
+      }
+    ]
+  }
+}
