@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 let preference='https://example.test/user/config/v/profile/manifest.json?v=mobile', requests=[], fixture;
-const context={ $getUserPreference:()=>preference, fetch:async(url,options)=>{requests.push({url,options});return {ok:true,json:async()=>fixture};} };
+const context={ $getUserPreference:(key)=>key === 'manifestUrl' ? preference : 'false', fetch:async(url,options)=>{requests.push({url,options});return {ok:true,json:async()=>fixture};} };
 vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/provider.js','utf8')+';globalThis.ProviderClass=Provider;',context);
 (async()=>{
  const p=new context.ProviderClass();

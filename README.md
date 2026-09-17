@@ -33,3 +33,7 @@ Only direct HTTP(S) streams are supported. Raw torrents, magnets, external playe
 Seanime has one shared header map per episode server. Sources requiring different request headers from the first playable source are omitted. This extension does not force dubbed audio or use a separate dub search. Tenji controls the displayed player UI; AIOStreams' plugin panel/badges are not included.
 
 Run tests with `node test.cjs`.
+
+### Troubleshooting (v0.1.1)
+
+Seanime can replace provider stream errors with a generic "no source found". In the provider preferences, temporarily enable **Diagnostic: test episode 1 when loading episodes**, save, and reopen the anime. This moves the check into episode-list loading so the actual error appears in Tenji's episode-list error/log. Disable the switch after troubleshooting. Diagnostics does not publish or transmit your configuration elsewhere; URLs are redacted from its error text. Standard `stremio://` manifest links are also accepted and converted to HTTPS.

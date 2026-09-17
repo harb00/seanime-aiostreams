@@ -35,19 +35,37 @@ class Provider {
             id: JSON.stringify({ anilist: m.id, episode: n, type: m.format === 'MOVIE' ? 'movie' : 'series' }),
             number: n, url: 'https://anilist.co/anime/' + m.id, title: m.format === 'MOVIE' ? (m.title.english || m.title.romaji) : 'Episode ' + n
         });
+        if (String($getUserPreference('diagnostics') || 'false') === 'true' && episodes.length) {
+            try {
+                const check = await this.findEpisodeServer(episodes[0], 'AIOStreams');
+                if (!check.videoSources.length) throw new Error('No playable sources.');
+            } catch (error) {
+                throw new Error('AIOStreams diagnostic (episode 1): ' + this.safeError(error));
+            }
+        }
         return episodes;
     }
     streamUrl(type, id) {
-        const manifest = String($getUserPreference('manifestUrl') || '').trim();
+        const manifest = String($getUserPreference('manifestUrl') || '').trim().replace(/^stremio:\/\//i, 'https://');
         const match = manifest.match(/^(https?:\/\/[^?#]+)\/manifest\.json(\?[^#]*)?$/);
         if (!match) throw new Error('Paste your complete AIOStreams Stremio manifest URL in provider settings (ending in /manifest.json).');
         return match[1] + '/stream/' + type + '/' + encodeURIComponent(id) + '.json' + (match[2] || '');
+    }
+    safeError(error) {
+        let message = String(error && error.message ? error.message : error);
+        const secret = String($getUserPreference('manifestUrl') || '').trim();
+        if (secret) message = message.split(secret).join('[private manifest]');
+        return message.replace(/(?:https?|stremio):\/\/[^\s"'<>]+/gi, '[URL hidden]').slice(0, 600);
     }
     async findEpisodeServer(episode, server) {
         const ref = JSON.parse(episode.id);
         // AIOStreams accepts AniList IDs and performs season/episode mapping itself.
         const id = 'anilist:' + ref.anilist + (ref.type === 'movie' ? '' : ':' + ref.episode);
-        const data = await this.json(this.streamUrl(ref.type, id));
+        const url = this.streamUrl(ref.type, id);
+        let data;
+        try { data = await this.json(url); }
+        catch (error) { throw new Error('Stream request failed: ' + this.safeError(error)); }
+        if (!data || !Array.isArray(data.streams)) throw new Error('Unexpected response: missing Stremio streams array. Check that this is the Stremio manifest, not the Seanime manifest.');
         const sources = [], selectedHeaders = {};
         let headerSignature = null;
         for (const s of (data.streams || [])) {
@@ -61,7 +79,10 @@ class Provider {
             const subtitles = (s.subtitles || []).filter(x => /^https?:\/\//i.test(x.url || '')).map((x, i) => ({ id: String(x.id || i), url: x.url, language: x.lang || 'unknown', isDefault: false }));
             sources.push({ url: s.url, type: /\.m3u8(?:[?#]|$)/i.test(s.url) ? 'm3u8' : /\.mp4(?:[?#]|$)/i.test(s.url) ? 'mp4' : 'unknown', quality: (sources.length + 1) + '. ' + (title || 'AIOStreams'), label: title || 'AIOStreams', subtitles });
         }
-        if (!sources.length) throw new Error('AIOStreams returned no direct HTTP(S) streams. Check your debrid setup and filters. Torrent-only results cannot play through this provider.');
+        if (!sources.length) {
+            const messages = data.streams.filter(s => !s.url && !s.infoHash).map(s => s.description || s.title || s.name || '').filter(Boolean);
+            throw new Error('AIOStreams returned ' + data.streams.length + ' results, but no direct HTTP(S) streams.' + (messages.length ? ' ' + this.safeError(messages.slice(0, 2).join(' | ')) : ' Check debrid settings, filters and anime ID mapping.'));
+        }
         return { server: 'AIOStreams', headers: selectedHeaders, videoSources: sources };
     }
 }

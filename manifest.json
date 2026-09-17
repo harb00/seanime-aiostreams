@@ -1,7 +1,7 @@
 {
   "id": "harb00-aiostreams-online",
   "name": "AIOStreams Online (harb00)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "manifestURI": "https://raw.githubusercontent.com/harb00/seanime-aiostreams/main/manifest.json",
   "language": "javascript",
   "type": "onlinestream-provider",
@@ -20,6 +20,13 @@
         "label": "AIOStreams manifest URL",
         "default": "",
         "description": "Paste your personal Stremio manifest URL from AIOStreams, not the Seanime plugin manifest."
+      },
+      {
+        "type": "switch",
+        "name": "diagnostics",
+        "label": "Diagnostic: test episode 1 when loading episodes",
+        "default": "false",
+        "description": "Temporarily enable to expose the actual stream error in the episode-list response. Disable after troubleshooting."
       }
     ]
   }
