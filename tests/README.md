@@ -2,7 +2,7 @@
 
 `node test.cjs` runs the provider regressions without network access, including
 MAL IDs that differ from AniList IDs, season/episode numbers, old cached episode
-IDs, diagnostic failures, HTTP errors, and redaction.
+IDs, metadata-only episode listing, HTTP errors, and redaction.
 
 `seanime_integration_test.go` exercises Seanime's actual extension runtime rather
 than mocking Goja or its fetch binding. Use a disposable Seanime v3.10.2 checkout:

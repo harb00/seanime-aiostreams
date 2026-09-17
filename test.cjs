@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
-let preference='https://example.test/user/config/v/profile/manifest.json?v=mobile', requests=[], fixture, diagnostics=false, fetchFailure=null, responseStatus=200, logs=[];
-const context={ $getUserPreference:(key)=>key === 'manifestUrl' ? preference : String(diagnostics), console:{error:(message)=>logs.push(message)}, fetch:async(url,options)=>{requests.push({url,options});if(fetchFailure) throw fetchFailure;return {ok:responseStatus===200,status:responseStatus,json:async()=> typeof fixture === 'function' ? fixture(url) : fixture};} };
+let preference='https://example.test/user/config/v/profile/manifest.json?v=mobile', requests=[], fixture, fetchFailure=null, responseStatus=200, logs=[];
+const context={ $getUserPreference:(key)=>key === 'manifestUrl' ? preference : undefined, console:{error:(message)=>logs.push(message)}, fetch:async(url,options)=>{requests.push({url,options});if(fetchFailure) throw fetchFailure;return {ok:responseStatus===200,status:responseStatus,json:async()=> typeof fixture === 'function' ? fixture(url) : fixture};} };
 vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/provider.js','utf8')+';globalThis.ProviderClass=Provider;',context);
 (async()=>{
  const p=new context.ProviderClass();
@@ -28,11 +28,6 @@ vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/provider.j
  fixture={data:{Media:{id:182205,idMal:null}}};
  await assert.rejects(()=>p.findEpisodeServer({id:JSON.stringify({anilist:182205,episode:1,type:'series'})},'default'),error=>typeof error==='string' && error.includes('no MyAnimeList mapping'));
 
- diagnostics=true;
- fixture=url=>url.includes('graphql.anilist.co') ? {data:{Media:{id:2,idMal:200,format:'MOVIE',episodes:1,status:'FINISHED',title:{english:'Film'}}}} : {streams:[]};
- assert.equal((await p.findEpisodes('2')).length,1,'failed diagnostics must preserve episodes');
- assert(logs.some(x=>x.includes('AIOStreams diagnostic (episode 1)') && x.includes('no direct')));
- diagnostics=false;
  responseStatus=403;
  await assert.rejects(()=>p.findEpisodeServer(movies[0],'default'),error=>typeof error==='string' && error.includes('HTTP 403'));
  responseStatus=200;
@@ -43,6 +38,6 @@ vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/provider.j
  await assert.rejects(()=>p.search({}),error=>typeof error==='string' && error.includes('AniList anime ID'));
  fixture={data:{Media:null}};
  await assert.rejects(()=>p.findEpisodes('2'),error=>typeof error==='string' && error.includes('AniList could not resolve'));
- console.log('PASS: diagnostics preserve lists, string rejections, HTTP status, network failures, URL redaction');
+ console.log('PASS: string rejections, HTTP status, network failures, URL redaction');
  console.log('PASS: configuration, exact AniList IDs, episodes, airing limits, movies, variant URLs, ordered sources, headers, subtitles, actionable errors');
 })().catch(e=>{console.error(e);process.exitCode=1});

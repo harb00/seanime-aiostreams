@@ -26,7 +26,7 @@ func aioProvider(t *testing.T, manifest string) hibike.Provider {
 		t.Fatal(err)
 	}
 	logger := zerolog.New(io.Discard)
-	ext := &extension.Extension{ID: "test-aiostreams", Name: "AIOStreams integration test", Version: "0.1.2", Language: extension.LanguageJavascript, Type: extension.TypeOnlinestreamProvider, Payload: string(source), UserConfig: &extension.UserConfig{}, SavedUserConfig: &extension.SavedUserConfig{Values: map[string]string{"manifestUrl": manifest, "diagnostics": "false"}}}
+	ext := &extension.Extension{ID: "test-aiostreams", Name: "AIOStreams integration test", Version: "0.1.3", Language: extension.LanguageJavascript, Type: extension.TypeOnlinestreamProvider, Payload: string(source), UserConfig: &extension.UserConfig{}, SavedUserConfig: &extension.SavedUserConfig{Values: map[string]string{"manifestUrl": manifest}}}
 	p, impl, err := NewGojaOnlinestreamProvider(ext, ext.Language, &logger, goja_runtime.NewManager(&logger), events.NewMockWSEventManager(&logger))
 	if err != nil {
 		t.Fatal(err)

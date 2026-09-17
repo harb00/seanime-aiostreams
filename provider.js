@@ -50,14 +50,6 @@ class Provider {
             id: JSON.stringify({ anilist: m.id, mal: m.idMal, episode: n, type: m.format === 'MOVIE' ? 'movie' : 'series' }),
             number: n, url: 'https://anilist.co/anime/' + m.id, title: m.format === 'MOVIE' ? (m.title.english || m.title.romaji) : 'Episode ' + n
         });
-        if (String($getUserPreference('diagnostics') || 'false') === 'true' && episodes.length) {
-            try {
-                const check = await this.findEpisodeServer(episodes[0], 'AIOStreams');
-                if (!check.videoSources.length) throw new Error('No playable sources.');
-            } catch (error) {
-                console.error('AIOStreams diagnostic (episode 1): ' + this.safeError(error));
-            }
-        }
         return episodes;
     }
     streamUrl(type, id) {
