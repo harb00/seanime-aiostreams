@@ -33,13 +33,3 @@ Only direct HTTP(S) streams are supported. Raw torrents, magnets, external playe
 Seanime has one shared header map per episode server. Sources requiring different request headers from the first playable source are omitted. This extension does not force dubbed audio or use a separate dub search. Tenji controls the displayed player UI; AIOStreams' plugin panel/badges are not included.
 
 Run tests with `node test.cjs`.
-
-### Troubleshooting
-
-Version 0.1.2 fixes empty results caused by requesting `anilist:` stream IDs that the configured stream addons do not support. AIOStreams' `/api/v1/anime?idType=anilistId&idValue=...` mapping endpoint supports AniList; this does not mean every stream addon accepts the `anilist:` prefix. Update the extension and refresh the episode list. Old cached episode IDs are also supported.
-
-Seanime can replace provider stream errors with a generic "no source found" and export JavaScript Error objects as `map[]`. The provider logs redacted error text to the Seanime server log and rejects public calls with a string so that the message survives export.
-
-Errors are logged automatically in the **Seanime server log** as `Stream lookup failed` or `Episode list failed`, with URLs redacted from the provider's error text. Standard `stremio://` manifest links are also accepted and converted to HTTPS.
-
-Version 0.1.3 removes the temporary diagnostic setting and episode preflight check. Provider settings now contain only the AIOStreams manifest URL.
